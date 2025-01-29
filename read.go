@@ -28,14 +28,13 @@ func (t *TM917) Read() (float32, Unit, string, error) {
 		return 0, "", "", fmt.Errorf("failed to read raw data: %w", err)
 	}
 
-	// Strip first and last characters (start and end markers).
+	// Strip start/end markers (often \x02 and \r).
 	str := strings.Trim(raw, "\x02\r")
-
 	if len(str) < minDataLength {
-		return 0, "", str, fmt.Errorf("data string too short: got %d bytes, want >= %d", len(str), minDataLength)
+		return 0, "", str, fmt.Errorf("data string too short: got %d, want >= %d", len(str), minDataLength)
 	}
 
-	// Determine unit based on the 4th character ('2' => Fahrenheit, '1' => Celsius).
+	// Determine the unit (4th character).
 	var unit Unit
 	switch str[3] {
 	case '2':
@@ -46,31 +45,49 @@ func (t *TM917) Read() (float32, Unit, string, error) {
 		return 0, "", str, fmt.Errorf("unknown unit in data string: %q", str)
 	}
 
-	// Try 2-decimal precision first
-	if reading, err := parseTemperature(str[9:14], twoDecimalLen); err == nil {
-		return reading, unit, str, nil
+	// Check precision by the 6th character: '2' => 2 decimals, '1' => 1 decimal.
+	var reading float32
+	switch str[5] {
+	case '2': // 2 decimals
+		r, err := parseTemperature(str[9:14], twoDecimalLen)
+		if err != nil {
+			return 0, unit, str, err
+		}
+		reading = r
+	case '1': // 1 decimal
+		r, err := parseTemperature(str[10:14], oneDecimalLen)
+		if err != nil {
+			return 0, unit, str, err
+		}
+		reading = r
+	default:
+		return 0, unit, str, fmt.Errorf("unknown precision flag in data string: %q", str)
 	}
 
-	// Fall back to 1-decimal precision
-	if reading, err := parseTemperature(str[10:14], oneDecimalLen); err == nil {
-		return reading, unit, str, nil
-	}
-
-	return 0, unit, str, fmt.Errorf("invalid data string: %q", str)
+	return reading, unit, str, nil
 }
 
-// parseTemperature attempts to parse a temperature string with the given length.
-// Returns the parsed temperature or an error if parsing fails.
+// parseTemperature parses a numeric substring and inserts the decimal
+// according to the expected length (4 => 1 decimal, 5 => 2 decimals).
 func parseTemperature(substr string, expectedLen int) (float32, error) {
 	if len(substr) != expectedLen {
 		return 0, fmt.Errorf("invalid substring length: got %d, want %d", len(substr), expectedLen)
 	}
+	var i int
+	if _, err := fmt.Sscanf(substr, "%d", &i); err != nil {
+		return 0, fmt.Errorf("failed to parse substring %q: %w", substr, err)
+	}
 
 	var reading float32
-	insertPos := expectedLen - 2
-	formatted := substr[:insertPos] + "." + substr[insertPos:]
-	if _, err := fmt.Sscanf(formatted, "%f", &reading); err != nil {
-		return 0, fmt.Errorf("failed to parse temperature: %w", err)
+	switch expectedLen {
+	case oneDecimalLen: // 4 => 1 decimal
+		// Example: "0826" => 826 => 82.6
+		reading = float32(i) / 10
+	case twoDecimalLen: // 5 => 2 decimals
+		// Example: "08276" => 8276 => 82.76
+		reading = float32(i) / 100
+	default:
+		return 0, fmt.Errorf("unsupported precision length: %d", expectedLen)
 	}
 	return reading, nil
 }
