@@ -23,14 +23,15 @@ import (
 )
 
 func main() {
-    // Open serial port
+    // Open serial port (Linux example, COM# for Windows)
+    // See https://pkg.go.dev/go.bug.st/serial for more information
     port, err := serial.Open("/dev/ttyUSB0", &serial.Mode{})
     if err != nil {
         panic(err)
     }
 
-    // Create new TM917 instance with high precision enabled
-    thermometer := tm917.NewTM917(port, true)
+    // Create new TM917 instance
+    thermometer := tm917.NewTM917(port)
     defer thermometer.Stop()
 
     // Read temperature

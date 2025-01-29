@@ -1,45 +1,56 @@
 package tm917
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// Read parses the raw 16-byte data from the thermometer. It extracts the
-// temperature (float32), returns the entire raw string, and any error encountered.
+const (
+	minDataLength = 14
+	twoDecimalLen = 5
+	oneDecimalLen = 4
+)
+
+// Read parses the raw 16-byte data from the thermometer, automatically detecting
+// whether it has 1-decimal or 2-decimal precision. It returns the temperature,
+// the entire raw string, and any error encountered.
 func (t *TM917) Read() (float32, string, error) {
 	str, err := t.Raw()
 	if err != nil {
-		return 0, "", err
+		return 0, "", fmt.Errorf("failed to read raw data: %w", err)
 	}
 
-	// Ensure we got the expected length.
-	if len(str) < 16 {
-		return 0, str, fmt.Errorf("invalid data length: got %d, want at least 16", len(str))
+	if len(str) < minDataLength {
+		return 0, str, fmt.Errorf("data string too short: got %d bytes, want >= %d", len(str), minDataLength)
 	}
 
-	var (
-		reading float32
-		substr  string
-	)
-
-	// HighPrecision means we want 2 decimal places.
-	// Offset into the 16-byte string by known positions rather than searching for "000" or "0000".
-	// Example: "41020200008276" -> last 5 digits "08276" => "82.76".
-	if t.HighPrecision {
-		substr = str[9:14] // 5 chars (e.g. "08276")
-		if len(substr) != 5 {
-			return 0, str, fmt.Errorf("invalid high-precision substring: %q", substr)
-		}
-		substr = substr[:3] + "." + substr[3:]
-	} else {
-		// For 1 decimal place: "41010100000282" -> last 4 digits "0282" => "28.2".
-		substr = str[10:14] // 4 chars (e.g. "0282")
-		if len(substr) != 4 {
-			return 0, str, fmt.Errorf("invalid substring: %q", substr)
-		}
-		substr = substr[:2] + "." + substr[2:]
+	// Try 2-decimal precision first
+	if reading, err := parseTemperature(str[9:14], twoDecimalLen); err == nil {
+		return reading, str, nil
 	}
 
-	if _, err := fmt.Sscanf(substr, "%f", &reading); err != nil {
-		return 0, str, fmt.Errorf("parse float: %w", err)
+	// Fall back to 1-decimal precision
+	if reading, err := parseTemperature(str[10:14], oneDecimalLen); err == nil {
+		return reading, str, nil
 	}
-	return reading, str, nil
+
+	return 0, str, fmt.Errorf("invalid data string: %q", str)
+}
+
+// parseTemperature attempts to parse a temperature string with the given length
+// Returns the parsed temperature or an error if parsing fails
+func parseTemperature(substr string, expectedLen int) (float32, error) {
+	if len(substr) != expectedLen {
+		return 0, fmt.Errorf("invalid substring length: got %d, want %d", len(substr), expectedLen)
+	}
+
+	var reading float32
+	insertPos := expectedLen - 2
+	formatted := substr[:insertPos] + "." + substr[insertPos:]
+
+	_, err := fmt.Sscanf(formatted, "%f", &reading)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse temperature: %w", err)
+	}
+
+	return reading, nil
 }

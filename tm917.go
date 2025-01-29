@@ -4,22 +4,17 @@ import (
 	"go.bug.st/serial"
 )
 
-// TM917 represents the Lutron TM-917 thermometer
-// connected to a serial port, with high precision enabled or disabled.
+// TM917 represents the Lutron TM-917 thermometer connected to a serial port.
 type TM917 struct {
-	// Port is the serial port connected to the thermometer.
+	// Port is the serial port where the thermometer is connected.
+	// See https://pkg.go.dev/go.bug.st/serial#Port for more information.
 	Port serial.Port
-	// HighPrecision is true if the thermometer is operating with 2 decimal places
-	// or false if it is operating with 1 decimal place.
-	HighPrecision bool
 }
 
-// Creates a new TM917 connected to the specified serial port,
-// with high precision enabled or disabled.
-func NewTM917(port serial.Port, highPrecision bool) *TM917 {
+// Creates a new TM917 connected to the specified serial port.
+func NewTM917(port serial.Port) *TM917 {
 	return &TM917{
-		Port:          port,
-		HighPrecision: highPrecision,
+		Port: port,
 	}
 }
 
