@@ -35,19 +35,19 @@ func main() {
     defer thermometer.Stop()
 
     // Read temperature
-    temp, _, err := thermometer.Read()
+    temp, unit, raw, err := thermometer.Read()
     if err != nil {
         panic(err)
     }
 
-    fmt.Printf("Temperature: %.2f°C\n", temp)
+    fmt.Printf("Temperature: %.2f°%s (raw: %q)\n", temp, unit, raw)
 }
 ```
 
 ## Features
 
 - Read temperature values from Lutron TM-917 thermometer
-- Support for both 1 decimal and 2 decimals readings
+- Automatic detection of unit (°C or °F) and precision (0.1 or 0.01)
 - Raw data access for advanced usage
 - Simple error handling
 
