@@ -28,8 +28,8 @@ func (t *TM917) Read() (float32, Unit, string, error) {
 		return 0, "", "", fmt.Errorf("failed to read raw data: %w", err)
 	}
 
-	// Strip leading/trailing whitespace (including \r and \n):
-	str := strings.TrimSpace(raw)
+	// Strip first and last characters (start and end markers).
+	str := strings.Trim(raw, "\x02\r")
 
 	if len(str) < minDataLength {
 		return 0, "", str, fmt.Errorf("data string too short: got %d bytes, want >= %d", len(str), minDataLength)
