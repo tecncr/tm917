@@ -1,13 +1,13 @@
 # tm917
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/tecncr/tm917.svg)](https://pkg.go.dev/github.com/tecncr/tm917)
+[![Go Reference](https://pkg.go.dev/badge/go.tecncr.com/tm917.svg)](https://pkg.go.dev/go.tecncr.com/tm917)
 
 A Go package for reading data from the Lutron TM-917 precision thermometer via serial port
 
 ## Installation
 
 ```bash
-go get github.com/tecncr/tm917
+go get go.tecncr.com/tm917
 ```
 
 ## Example
@@ -19,7 +19,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/tecncr/tm917"
+	"go.tecncr.com/tm917"
 	"go.bug.st/serial"
 )
 
@@ -70,13 +70,13 @@ func main() {
 
 ## Requirements
 
-- Go 1.23 or later
+- Go 1.24 or later
 - Physical access to a serial port
 - Lutron TM-917 thermometer connected to the serial port
 
 ## Documentation
 
-For detailed documentation, see the [Go Reference](https://pkg.go.dev/github.com/tecncr/tm917).
+For detailed documentation, see the [Go Reference](https://pkg.go.dev/go.tecncr.com/tm917).
 
 ## License
 
